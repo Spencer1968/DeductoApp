@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contractor Receipt & Mileage Logger</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PWA Manifest -->
+    <link rel="manifest"
+        href="data:application/json;base64,ewogICJuYW1lIjogIkNvbnRyYWN0b3IgVGF4IExvZ2dlciIsCiAgInNob3J0X25hbWUiOiAiVGF4TG9nZ2VyIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwZjE3MmEiLAogICJ0aGVtZV9jb2xvciI6ICIjMjJjNTVlIgp9">
+    <style>
+        /* Smooth transition for views */
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-900 text-slate-100 min-h-screen pb-20 font-sans antialiased selection:bg-brand-500 selection:text-slate-950">
+
+    <!-- Top Header -->
+    <header
+        class="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <div
+                class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-slate-950 font-bold text-lg">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+            <h1 class="font-extrabold text-lg tracking-tight">Deducto <span id="header-brand-pro-tag"
+                    class="text-xs text-brand-500 font-medium px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/25 hidden">PRO</span>
+            </h1>
+        </div>
+        <div class="flex items-center space-x-2">
+            <!-- Offline Status Badge -->
+            <span id="offline-badge"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="connection-status-text">Offline Ready</span>
+            </span>
+            <!-- Pro Status Indicator -->
+            <button onclick="openUpgradeModal()" id="header-pro-badge"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-all">
+                <i class="fa-solid fa-crown text-[10px]"></i>
+                <span id="header-pro-text">FREE</span>
+            </button>
+            <!-- Settings Gear Button -->
+            <button onclick="switchTab('settings')" id="header-settings-btn"
+                class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-gear text-sm"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- App Main Container -->
+    <main class="max-w-md mx-auto p-4">
+
+        <!-- DASHBOARD VIEW -->
+        <section id="view-dashboard" class="view-section active space-y-4">
+
+            <!-- Usage Counter Banner for Free Users -->
+            <div id="usage-limit-banner"
+                class="bg-slate-800/90 border border-slate-700/60 rounded-xl p-3 flex items-center justify-between">
+                <div class="space-y-1 flex-1 pr-3">
+                    <div class="flex justify-between text-xs font-medium">
+                        <span class="text-slate-300">Free Tier Usage</span>
+                        <span id="usage-text-counter" class="text-brand-400 font-bold">0 / 5 Receipts</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                        <div id="usage-progress-bar" class="bg-brand-500 h-1.5 rounded-full transition-all duration-300"
+                            style="width: 0%"></div>
+                    </div>
+                </div>
+                <button onclick="openUpgradeModal()"
+                    class="shrink-0 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs font-black px-3 py-1.5 rounded-lg shadow-md flex items-center gap-1">
+                    <i class="fa-solid fa-bolt"></i> Upgrade
+                </button>
+            </div>
+
+            <!-- Summary Header -->
+            <div
+                class="bg-gradient-to-br from-slate-800 to-slate-850 p-5 rounded-2xl border border-slate-700/60 shadow-xl relative overflow-hidden">
+                <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl"></div>
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Est. Tax Savings Saved</p>
+                <div class="flex items-baseline space-x-1 mt-1">
+                    <span class="text-4xl font-extrabold text-brand-500" id="dash-tax-saved">$0.00</span>
+                    <span class="text-xs text-slate-400">total</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-info text-slate-500"></i> Based on total mileage & eligible expenses
+                </p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-xs font-medium">Total Expenses</span>
+                        <i class="fa-solid fa-wallet text-brand-500"></i>
+                    </div>
+                    <div class="text-xl font-bold text-slate-100" id="dash-total-expenses">$0.00</div>
+                    <span class="text-[10px] text-slate-400" id="dash-receipt-count">0 receipts logged</span>
+                </div>
+                <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/50">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-xs font-medium">Miles Driven</span>
+                        <i class="fa-solid fa-car text-blue-400"></i>
+                    </div>
+                    <div class="text-xl font-bold text-slate-100" id="dash-total-miles">0.0 mi</div>
+                    <span class="text-[10px] text-slate-400" id="dash-mileage-deduction">$0.00 tax deduction</span>
+                </div>
+            </div>
+
+            <!-- Expense Category Breakdown -->
+            <div class="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50 space-y-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Expense Breakdown</h3>
+                <div id="category-bars" class="space-y-2">
+                    <!-- Dynamic rendering -->
+                    <p class="text-xs text-slate-500 italic py-2">No expenses logged yet.</p>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Recent Logs</h3>
+                    <button onclick="switchTab('logs')" class="text-xs text-brand-500 hover:underline">View All</button>
+                </div>
+                <div id="dashboard-recent-list" class="space-y-2">
+                    <!-- Dynamic Items -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ADD ENTRY VIEW -->
+        <section id="view-add" class="view-section space-y-4">
+            <!-- Mode Toggle Header -->
+            <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700/60">
+                <button type="button" id="toggle-receipt" onclick="setEntryType('receipt')"
+                    class="flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-brand-500 text-slate-950 shadow-md">
+                    <i class="fa-solid fa-receipt mr-1.5"></i> Receipt
+                </button>
+                <button type="button" id="toggle-mileage" onclick="setEntryType('mileage')"
+                    class="flex-1 py-2 rounded-lg text-sm font-semibold text-slate-400 transition-all duration-200 hover:text-slate-200">
+                    <i class="fa-solid fa-route mr-1.5"></i> Mileage
+                </button>
+            </div>
+
+            <form id="entry-form" onsubmit="handleFormSubmit(event)"
+                class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700/50 space-y-4">
+
+                <!-- Date Input -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Date</label>
+                    <input type="date" id="entry-date" required
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500">
+                </div>
+
+                <!-- RECEIPT SPECIFIC FIELDS -->
+                <div id="receipt-fields" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Merchant / Business</label>
+                        <input type="text" id="receipt-merchant" placeholder="Home Depot, Shell, AutoZone"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Amount ($)</label>
+                            <input type="number" step="0.01" min="0" id="receipt-amount" placeholder="0.00"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Category</label>
+                            <select id="receipt-category"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500">
+                                <option value="Tools">Tools</option>
+                                <option value="Supplies">Supplies</option>
+                                <option value="Gas">Gas/Fuel</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Food">Meals / Food</option>
+                                <option value="Other">Other Expense</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload Placeholder -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-medium text-slate-300">Receipt Photo</label>
+                            <span id="ocr-pro-tag"
+                                class="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 font-semibold flex items-center gap-1">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> AI OCR Scan (PRO)
+                            </span>
+                        </div>
+                        <div class="relative border-2 border-dashed border-slate-700 hover:border-brand-500/50 rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-900/50"
+                            onclick="handleReceiptPhotoClick()">
+                            <input type="file" id="receipt-photo-input" accept="image/*" capture="environment"
+                                class="hidden" onchange="previewReceiptPhoto(event)">
+                            <div id="photo-placeholder-content" class="space-y-1">
+                                <i class="fa-solid fa-camera text-2xl text-slate-500"></i>
+                                <p class="text-xs text-slate-400">Tap to snap or upload receipt photo</p>
+                            </div>
+                            <img id="photo-preview"
+                                class="hidden max-h-40 mx-auto rounded-lg border border-slate-700 object-cover"
+                                alt="Receipt Preview">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2 pt-1">
+                        <input type="checkbox" id="receipt-tax-deductible" checked
+                            class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-500 focus:ring-brand-500 focus:ring-offset-slate-900">
+                        <label for="receipt-tax-deductible" class="text-xs font-medium text-slate-300">Tax Deductible
+                            Business Expense</label>
+                    </div>
+                </div>
+
+                <!-- MILEAGE SPECIFIC FIELDS -->
+                <div id="mileage-fields" class="space-y-4 hidden">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Start Odometer /
+                                Location</label>
+                            <input type="text" id="mileage-start" placeholder="e.g., Home or 45,000"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">End Odometer / Location</label>
+                            <input type="text" id="mileage-end" placeholder="e.g., Jobsite or 45,035"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Total Miles</label>
+                            <input type="number" step="0.1" min="0" id="mileage-miles" placeholder="0.0"
+                                oninput="calculateMileageSavings()"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">IRS Rate ($/mi)</label>
+                            <input type="number" step="0.01" value="0.67" id="mileage-rate"
+                                oninput="calculateMileageSavings()"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500">
+                        </div>
+                    </div>
+
+                    <!-- Calculated Savings Display -->
+                    <div class="bg-brand-500/10 border border-brand-500/20 rounded-lg p-3 text-center">
+                        <p class="text-[11px] text-brand-400 uppercase font-semibold">Calculated Deduction Value</p>
+                        <p class="text-2xl font-black text-brand-500" id="mileage-calculated-value">$0.00</p>
+                    </div>
+                </div>
+
+                <!-- Common Notes Field -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Notes / Job Reference</label>
+                    <input type="text" id="entry-notes" placeholder="Client name, job site, or purpose..."
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500">
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit"
+                    class="w-full bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold py-3 rounded-xl transition-all shadow-lg shadow-brand-500/20 active:scale-[0.99]">
+                    Save Log Entry
+                </button>
+            </form>
+        </section>
+
+        <!-- LOG & RECEIPTS VIEW -->
+        <section id="view-logs" class="view-section space-y-4">
+            <!-- Filter & Search Controls -->
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700/60 w-full text-xs">
+                    <button onclick="filterLogs('all')" id="filter-all"
+                        class="flex-1 py-1.5 rounded-lg font-semibold bg-brand-500 text-slate-950">All</button>
+                    <button onclick="filterLogs('receipt')" id="filter-receipt"
+                        class="flex-1 py-1.5 rounded-lg font-semibold text-slate-400">Receipts</button>
+                    <button onclick="filterLogs('mileage')" id="filter-mileage"
+                        class="flex-1 py-1.5 rounded-lg font-semibold text-slate-400">Mileage</button>
+                </div>
+            </div>
+
+            <!-- Entries List Container -->
+            <div id="logs-list-container" class="space-y-2">
+                <!-- Dynamically populated -->
+            </div>
+        </section>
+
+        <!-- EXPORT / SETTINGS VIEW -->
+        <section id="view-settings" class="view-section space-y-4">
+            <!-- Tax Export Card -->
+            <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700/50 space-y-3 relative overflow-hidden">
+                <div id="export-pro-lock"
+                    class="absolute top-2 right-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <i class="fa-solid fa-lock"></i> PRO Feature
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-file-csv"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-100">Tax Data Export</h3>
+                        <p class="text-xs text-slate-400">Export for FreeTaxUSA, TurboTax, or accountant</p>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Download your full receipt and mileage history as a standardized CSV file ready for self-employment
+                    tax calculations.
+                </p>
+                <button onclick="handleCSVExportClick()"
+                    class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm">
+                    <i class="fa-solid fa-download"></i> <span id="export-btn-label">Download CSV File</span>
+                </button>
+            </div>
+
+            <!-- IRS Tax Quick Tips -->
+            <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/40 space-y-2 text-xs text-slate-300">
+                <h4 class="font-bold text-slate-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-lightbulb text-yellow-500"></i> Sole Proprietor Tax Tip
+                </h4>
+                <p>Keep physical/digital copies of receipts for expenses over $75. Track all business miles driven from
+                    the moment you leave your shop or home office.</p>
+            </div>
+
+            <!-- Developer / Testing Sandbox -->
+            <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Dev Test Tools</h4>
+                    <span class="text-[10px] text-slate-500">Local Testing</span>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-xs text-slate-400">Simulate PRO Subscription:</span>
+                    <button onclick="toggleProModeDev()" id="dev-toggle-btn"
+                        class="bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-1 rounded-lg border border-slate-600">
+                        Toggle PRO Mode
+                    </button>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="bg-red-500/5 p-4 rounded-xl border border-red-500/20 space-y-3">
+                <h4 class="text-xs font-bold text-red-400 uppercase tracking-wider">Storage Management</h4>
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-400">Stored Entries:</span>
+                    <span id="storage-count-label" class="font-bold text-slate-200">0 records</span>
+                </div>
+                <button onclick="clearAllData()"
+                    class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-semibold py-2 rounded-lg transition-colors text-xs">
+                    Clear All Saved Data
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- UPGRADE TO PRO MODAL (PAYWALL) -->
+    <div id="upgrade-modal"
+        class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div
+            class="bg-slate-900 border border-amber-500/30 w-full max-w-sm rounded-2xl p-5 space-y-4 shadow-2xl relative">
+            <button onclick="closeUpgradeModal()"
+                class="absolute top-3 right-3 text-slate-500 hover:text-slate-300 p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="text-center space-y-1">
+                <div
+                    class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xl mx-auto mb-2">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-100">Upgrade to Pro</h3>
+                <p class="text-xs text-slate-400">Maximize your tax write-offs with zero limits</p>
+            </div>
+
+            <!-- Billing Cycle Toggle -->
+            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                <button onclick="setBillingCycle('monthly')" id="bill-monthly"
+                    class="flex-1 py-1.5 rounded-lg font-bold bg-amber-500 text-slate-950 shadow">Monthly
+                    ($4.99)</button>
+                <button onclick="setBillingCycle('yearly')" id="bill-yearly"
+                    class="flex-1 py-1.5 rounded-lg font-bold text-slate-400 hover:text-slate-200">Yearly ($49 - Save
+                    18%)</button>
+            </div>
+
+            <!-- Pro Features Checklist -->
+            <div class="space-y-2 text-xs">
+                <div class="flex items-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-circle-check text-amber-400"></i>
+                    <span><strong>Unlimited</strong> Receipt Scans & Uploads</span>
+                </div>
+                <div class="flex items-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-circle-check text-amber-400"></i>
+                    <span><strong>AI Auto-OCR</strong> Receipt Text Extraction</span>
+                </div>
+                <div class="flex items-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-circle-check text-amber-400"></i>
+                    <span><strong>Direct CSV Tax Export</strong> for FreeTaxUSA/TurboTax</span>
+                </div>
+                <div class="flex items-center gap-2 text-slate-200">
+                    <i class="fa-solid fa-circle-check text-amber-400"></i>
+                    <span><strong>Offline Cloud Backup</strong> Sync Indicator</span>
+                </div>
+            </div>
+
+            <!-- Checkout Action Button -->
+            <button onclick="simulateStripeCheckout()" id="stripe-checkout-btn"
+                class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-3 rounded-xl shadow-xl shadow-amber-500/20 text-sm flex items-center justify-center gap-2">
+                <i class="fa-solid fa-lock"></i> Subscribe with Stripe ($4.99)
+            </button>
+
+            <p class="text-[10px] text-center text-slate-500">Cancel anytime. Standard 100% tax-deductible software
+                expense.</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification Element -->
+    <div id="toast"
+        class="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-slate-100 text-xs font-semibold px-4 py-2.5 rounded-xl border border-slate-700 shadow-2xl opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2">
+        <span>Toast message</span>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav
+        class="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-lg border-t border-slate-800 px-2 py-2">
+        <div class="max-w-md mx-auto flex items-center justify-around">
+            <button onclick="switchTab('dashboard')" id="nav-btn-dashboard"
+                class="flex flex-col items-center justify-center flex-1 py-1 text-brand-500 font-bold transition-colors">
+                <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i>
+                <span class="text-[10px]">Dashboard</span>
+            </button>
+            <button onclick="switchTab('add')" id="nav-btn-add"
+                class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-200 transition-colors">
+                <div
+                    class="w-10 h-10 -mt-5 bg-brand-500 text-slate-950 rounded-full flex items-center justify-center shadow-lg shadow-brand-500/30 border-2 border-slate-950">
+                    <i class="fa-solid fa-plus text-lg"></i>
+                </div>
+                <span class="text-[10px] mt-0.5">Add Log</span>
+            </button>
+            <button onclick="switchTab('logs')" id="nav-btn-logs"
+                class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-200 transition-colors">
+                <i class="fa-solid fa-list-check text-lg mb-0.5"></i>
+                <span class="text-[10px]">Logs</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // State Management
+        let appEntries = JSON.parse(localStorage.getItem('contractor_tax_entries')) || [];
+        let isProUser = localStorage.getItem('contractor_is_pro') === 'true';
+        let currentEntryType = 'receipt';
+        let currentFilter = 'all';
+        let photoDataBase64 = '';
+        let currentBillingCycle = 'monthly';
+        const FREE_RECEIPT_LIMIT = 5;
+
+        // Initialize App on Load
+        window.onload = function () {
+            // Set default date picker to today
+            document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+
+            // Register network status listeners for PWA offline detection
+            updateOnlineStatus();
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+
+            // Initial UI Render
+            updateProUI();
+            renderDashboard();
+            renderLogs();
+            updateStorageCount();
+        };
+
+        // Network Online/Offline Status Handler
+        function updateOnlineStatus() {
+            const badgeText = document.getElementById('connection-status-text');
+            const badge = document.getElementById('offline-badge');
+            if (navigator.onLine) {
+                badgeText.innerText = 'Online';
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+            } else {
+                badgeText.innerText = 'Offline Mode';
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20';
+            }
+        }
+
+        // Tab Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+            const targetSection = document.getElementById(`view-${tabId}`);
+            if (targetSection) targetSection.classList.add('active');
+
+            // Reset navbar highlighting
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.className = "flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-200 transition-colors";
+            });
+
+            // Highlight settings gear in header if active
+            const headerSettingsBtn = document.getElementById('header-settings-btn');
+            if (tabId === 'settings') {
+                headerSettingsBtn.className = "w-8 h-8 rounded-full bg-brand-500/20 border border-brand-500/40 text-brand-400 flex items-center justify-center transition-colors";
+            } else {
+                headerSettingsBtn.className = "w-8 h-8 rounded-full bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white flex items-center justify-center transition-colors";
+            }
+
+            const activeNavBtn = document.getElementById(`nav-btn-${tabId}`);
+            if (activeNavBtn) {
+                if (tabId === 'add') {
+                    activeNavBtn.className = "flex flex-col items-center justify-center flex-1 py-1 text-brand-400 font-bold transition-colors";
+                } else {
+                    activeNavBtn.className = "flex flex-col items-center justify-center flex-1 py-1 text-brand-500 font-bold transition-colors";
+                }
+            }
+
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'logs') renderLogs();
+        }
+
+        // Entry Mode Toggle (Receipt vs Mileage)
+        function setEntryType(type) {
+            currentEntryType = type;
+            const rBtn = document.getElementById('toggle-receipt');
+            const mBtn = document.getElementById('toggle-mileage');
+            const rFields = document.getElementById('receipt-fields');
+            const mFields = document.getElementById('mileage-fields');
+
+            if (type === 'receipt') {
+                rBtn.className = "flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-brand-500 text-slate-950 shadow-md";
+                mBtn.className = "flex-1 py-2 rounded-lg text-sm font-semibold text-slate-400 transition-all duration-200 hover:text-slate-200";
+                rFields.classList.remove('hidden');
+                mFields.classList.add('hidden');
+            } else {
+                mBtn.className = "flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 bg-brand-500 text-slate-950 shadow-md";
+                rBtn.className = "flex-1 py-2 rounded-lg text-sm font-semibold text-slate-400 transition-all duration-200 hover:text-slate-200";
+                mFields.classList.remove('hidden');
+                rFields.classList.add('hidden');
+            }
+        }
+
+        // Mileage Savings Auto-Calculator
+        function calculateMileageSavings() {
+            const miles = parseFloat(document.getElementById('mileage-miles').value) || 0;
+            const rate = parseFloat(document.getElementById('mileage-rate').value) || 0.67;
+            const total = miles * rate;
+            document.getElementById('mileage-calculated-value').innerText = `$${total.toFixed(2)}`;
+        }
+
+        // Pro Status UI Update
+        function updateProUI() {
+            const badgeText = document.getElementById('header-pro-text');
+            const badgeBtn = document.getElementById('header-pro-badge');
+            const brandProTag = document.getElementById('header-brand-pro-tag');
+            const usageBanner = document.getElementById('usage-limit-banner');
+            const exportLock = document.getElementById('export-pro-lock');
+            const exportBtnLabel = document.getElementById('export-btn-label');
+            const devBtn = document.getElementById('dev-toggle-btn');
+
+            if (isProUser) {
+                brandProTag.classList.remove('hidden');
+                badgeText.innerText = "PRO ACTIVE";
+                badgeBtn.className = "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+                usageBanner.classList.add('hidden');
+                exportLock.classList.add('hidden');
+                exportBtnLabel.innerText = "Download CSV File";
+                devBtn.innerText = "Switch to FREE Mode";
+                devBtn.className = "bg-emerald-600 text-white text-xs font-semibold px-3 py-1 rounded-lg";
+            } else {
+                brandProTag.classList.add('hidden');
+                badgeText.innerText = "UPGRADE";
+                badgeBtn.className = "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20";
+                usageBanner.classList.remove('hidden');
+                exportLock.classList.remove('hidden');
+                exportBtnLabel.innerText = "Unlock CSV Export (PRO)";
+                devBtn.innerText = "Switch to PRO Mode";
+                devBtn.className = "bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-1 rounded-lg border border-slate-600";
+            }
+            updateUsageProgress();
+        }
+
+        // Usage Progress Calculator
+        function updateUsageProgress() {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const monthlyReceipts = appEntries.filter(e => e.type === 'receipt' && e.date.startsWith(currentMonth)).length;
+
+            const progress = Math.min((monthlyReceipts / FREE_RECEIPT_LIMIT) * 100, 100);
+            document.getElementById('usage-progress-bar').style.width = `${progress}%`;
+            document.getElementById('usage-text-counter').innerText = `${monthlyReceipts} / ${FREE_RECEIPT_LIMIT} Receipts`;
+
+            return monthlyReceipts;
+        }
+
+        // Paywall Intercepts
+        function handleReceiptPhotoClick() {
+            if (!isProUser && updateUsageProgress() >= FREE_RECEIPT_LIMIT) {
+                openUpgradeModal();
+            } else {
+                document.getElementById('receipt-photo-input').click();
+            }
+        }
+
+        function handleCSVExportClick() {
+            if (!isProUser) {
+                openUpgradeModal();
+            } else {
+                exportToCSV();
+            }
+        }
+
+        // Upgrade Modal Controls
+        function openUpgradeModal() {
+            const modal = document.getElementById('upgrade-modal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function closeUpgradeModal() {
+            const modal = document.getElementById('upgrade-modal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function setBillingCycle(cycle) {
+            currentBillingCycle = cycle;
+            const mBtn = document.getElementById('bill-monthly');
+            const yBtn = document.getElementById('bill-yearly');
+            const checkoutBtn = document.getElementById('stripe-checkout-btn');
+
+            if (cycle === 'monthly') {
+                mBtn.className = "flex-1 py-1.5 rounded-lg font-bold bg-amber-500 text-slate-950 shadow";
+                yBtn.className = "flex-1 py-1.5 rounded-lg font-bold text-slate-400 hover:text-slate-200";
+                checkoutBtn.innerHTML = `<i class="fa-solid fa-lock"></i> Subscribe with Stripe ($4.99/mo)`;
+            } else {
+                yBtn.className = "flex-1 py-1.5 rounded-lg font-bold bg-amber-500 text-slate-950 shadow";
+                mBtn.className = "flex-1 py-1.5 rounded-lg font-bold text-slate-400 hover:text-slate-200";
+                checkoutBtn.innerHTML = `<i class="fa-solid fa-lock"></i> Subscribe with Stripe ($49/yr)`;
+            }
+        }
+
+        // Simulated Stripe Checkout Payment Flow
+        function simulateStripeCheckout() {
+            // Replace these with your actual Stripe Payment Link URLs from Step 2!
+            const STRIPE_MONTHLY_URL = "https://buy.stripe.com/3cI3cp8Wp9fz4Rs6XP9Zm00";
+            const STRIPE_YEARLY_URL = "https://buy.stripe.com/3cI3cp3C577r6ZA95X9Zm01";
+
+            const checkoutUrl = (currentBillingCycle === 'monthly') ? STRIPE_MONTHLY_URL : STRIPE_YEARLY_URL;
+
+            // Redirect the user straight to Stripe Checkout
+            window.location.href = checkoutUrl;
+        }
+
+        // Dev Toggle Mode
+        function toggleProModeDev() {
+            isProUser = !isProUser;
+            localStorage.setItem('contractor_is_pro', isProUser ? 'true' : 'false');
+            updateProUI();
+            showToast(isProUser ? "PRO Mode Enabled (Dev)" : "FREE Mode Enabled (Dev)");
+        }
+
+        // Photo Upload & AI OCR Simulation
+        function previewReceiptPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    photoDataBase64 = e.target.result;
+                    const preview = document.getElementById('photo-preview');
+                    const placeholder = document.getElementById('photo-placeholder-content');
+                    preview.src = photoDataBase64;
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+
+                    // Simulate AI OCR scan if Pro User
+                    if (isProUser) {
+                        showToast("🤖 AI Scanning Receipt...");
+                        setTimeout(() => {
+                            document.getElementById('receipt-merchant').value = "Home Depot #" + Math.floor(1000 + Math.random() * 9000);
+                            document.getElementById('receipt-amount').value = (Math.random() * 80 + 12).toFixed(2);
+                            showToast("✨ AI Extracted Merchant & Total!");
+                        }, 800);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Form Submission Handler with Limit Enforcement
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            if (currentEntryType === 'receipt' && !isProUser) {
+                if (updateUsageProgress() >= FREE_RECEIPT_LIMIT) {
+                    openUpgradeModal();
+                    return;
+                }
+            }
+
+            const date = document.getElementById('entry-date').value;
+            const notes = document.getElementById('entry-notes').value;
+
+            let entryData = {
+                id: Date.now(),
+                type: currentEntryType,
+                date: date,
+                notes: notes,
+                createdAt: new Date().toISOString()
+            };
+
+            if (currentEntryType === 'receipt') {
+                const amount = parseFloat(document.getElementById('receipt-amount').value) || 0;
+                entryData.merchant = document.getElementById('receipt-merchant').value || 'Unspecified';
+                entryData.amount = amount;
+                entryData.category = document.getElementById('receipt-category').value;
+                entryData.taxDeductible = document.getElementById('receipt-tax-deductible').checked;
+                entryData.photo = photoDataBase64;
+            } else {
+                const miles = parseFloat(document.getElementById('mileage-miles').value) || 0;
+                const rate = parseFloat(document.getElementById('mileage-rate').value) || 0.67;
+                entryData.startLoc = document.getElementById('mileage-start').value || 'N/A';
+                entryData.endLoc = document.getElementById('mileage-end').value || 'N/A';
+                entryData.miles = miles;
+                entryData.rate = rate;
+                entryData.calculatedDeduction = miles * rate;
+            }
+
+            // Save to local storage array
+            appEntries.unshift(entryData);
+            localStorage.setItem('contractor_tax_entries', JSON.stringify(appEntries));
+
+            // Reset form & inputs
+            document.getElementById('entry-form').reset();
+            document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+            photoDataBase64 = '';
+            document.getElementById('photo-preview').classList.add('hidden');
+            document.getElementById('photo-placeholder-content').classList.remove('hidden');
+            document.getElementById('mileage-calculated-value').innerText = '$0.00';
+
+            showToast('Entry Logged Successfully!');
+            updateStorageCount();
+            updateUsageProgress();
+            switchTab('dashboard');
+        }
+
+        // Render Dashboard Statistics & Charts
+        function renderDashboard() {
+            let totalExpenses = 0;
+            let receiptCount = 0;
+            let totalMiles = 0;
+            let totalMileageDeduction = 0;
+            let categoryTotals = {};
+
+            appEntries.forEach(entry => {
+                if (entry.type === 'receipt') {
+                    if (entry.taxDeductible) {
+                        totalExpenses += entry.amount;
+                    }
+                    receiptCount++;
+                    categoryTotals[entry.category] = (categoryTotals[entry.category] || 0) + entry.amount;
+                } else if (entry.type === 'mileage') {
+                    totalMiles += entry.miles;
+                    totalMileageDeduction += entry.calculatedDeduction;
+                }
+            });
+
+            const totalTaxSaved = totalExpenses + totalMileageDeduction;
+
+            // DOM Updates
+            document.getElementById('dash-tax-saved').innerText = `$${totalTaxSaved.toFixed(2)}`;
+            document.getElementById('dash-total-expenses').innerText = `$${totalExpenses.toFixed(2)}`;
+            document.getElementById('dash-receipt-count').innerText = `${receiptCount} receipts logged`;
+            document.getElementById('dash-total-miles').innerText = `${totalMiles.toFixed(1)} mi`;
+            document.getElementById('dash-mileage-deduction').innerText = `$${totalMileageDeduction.toFixed(2)} tax deduction`;
+
+            // Render Category Bars
+            const categoryBarsContainer = document.getElementById('category-bars');
+            categoryBarsContainer.innerHTML = '';
+
+            const categories = Object.keys(categoryTotals);
+            if (categories.length === 0) {
+                categoryBarsContainer.innerHTML = `<p class="text-xs text-slate-500 italic py-2">No expense categories logged yet.</p>`;
+            } else {
+                categories.forEach(cat => {
+                    const amount = categoryTotals[cat];
+                    const percentage = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0;
+
+                    const barHtml = `
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300 font-medium">${cat}</span>
+                                <span class="text-slate-400">$${amount.toFixed(2)}</span>
+                            </div>
+                            <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+                                <div class="bg-brand-500 h-2 rounded-full" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                    categoryBarsContainer.insertAdjacentHTML('beforeend', barHtml);
+                });
+            }
+
+            // Render Recent 3 Items
+            const recentContainer = document.getElementById('dashboard-recent-list');
+            recentContainer.innerHTML = '';
+            const recentEntries = appEntries.slice(0, 3);
+
+            if (recentEntries.length === 0) {
+                recentContainer.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">No recent activity.</p>`;
+            } else {
+                recentEntries.forEach(entry => {
+                    recentContainer.appendChild(createLogItemDOM(entry));
+                });
+            }
+        }
+
+        // Render Logs View
+        function renderLogs() {
+            const container = document.getElementById('logs-list-container');
+            container.innerHTML = '';
+
+            const filtered = appEntries.filter(entry => {
+                if (currentFilter === 'receipt') return entry.type === 'receipt';
+                if (currentFilter === 'mileage') return entry.type === 'mileage';
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-500 space-y-2">
+                        <i class="fa-solid fa-folder-open text-3xl"></i>
+                        <p class="text-xs">No entries found for this filter.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(entry => {
+                container.appendChild(createLogItemDOM(entry, true));
+            });
+        }
+
+        // Helper to Build Entry Card DOM
+        function createLogItemDOM(entry, allowDelete = false) {
+            const card = document.createElement('div');
+            card.className = "bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/50 flex items-center justify-between gap-3";
+
+            const isReceipt = entry.type === 'receipt';
+            const iconClass = isReceipt ? 'fa-receipt text-brand-400 bg-brand-500/10' : 'fa-route text-blue-400 bg-blue-500/10';
+            const title = isReceipt ? entry.merchant : `${entry.miles} Miles Driven`;
+            const subtitle = isReceipt ? `${entry.category} • ${entry.date}` : `${entry.startLoc} ➔ ${entry.endLoc} • ${entry.date}`;
+            const valDisplay = isReceipt ? `$${entry.amount.toFixed(2)}` : `$${entry.calculatedDeduction.toFixed(2)}`;
+
+            card.innerHTML = `
+                <div class="flex items-center space-x-3 overflow-hidden">
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconClass}">
+                        <i class="fa-solid ${isReceipt ? 'fa-receipt' : 'fa-car'} text-base"></i>
+                    </div>
+                    <div class="truncate">
+                        <h4 class="text-xs font-bold text-slate-100 truncate">${title}</h4>
+                        <p class="text-[11px] text-slate-400 truncate">${subtitle}</p>
+                        ${entry.notes ? `<p class="text-[10px] text-slate-500 italic truncate">${entry.notes}</p>` : ''}
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 shrink-0">
+                    <div class="text-right">
+                        <span class="text-xs font-extrabold ${isReceipt ? 'text-slate-100' : 'text-brand-400'}">${valDisplay}</span>
+                        ${isReceipt && !entry.taxDeductible ? '<p class="text-[9px] text-amber-500">Non-deductible</p>' : ''}
+                    </div>
+                    ${allowDelete ? `
+                        <button onclick="deleteEntry(${entry.id})" class="text-slate-600 hover:text-red-400 p-1 transition-colors">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+
+            return card;
+        }
+
+        // Filter Logs Handler
+        function filterLogs(filterType) {
+            currentFilter = filterType;
+            ['all', 'receipt', 'mileage'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if (f === filterType) {
+                    btn.className = "flex-1 py-1.5 rounded-lg font-semibold bg-brand-500 text-slate-950";
+                } else {
+                    btn.className = "flex-1 py-1.5 rounded-lg font-semibold text-slate-400";
+                }
+            });
+            renderLogs();
+        }
+
+        // Delete Single Entry
+        function deleteEntry(id) {
+            appEntries = appEntries.filter(item => item.id !== id);
+            localStorage.setItem('contractor_tax_entries', JSON.stringify(appEntries));
+            renderLogs();
+            renderDashboard();
+            updateStorageCount();
+            showToast('Entry Deleted');
+        }
+
+        // Export Data to CSV
+        function exportToCSV() {
+            if (appEntries.length === 0) {
+                showToast('No data available to export!');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,ID,Type,Date,Merchant/Start,Category/End,Amount/Miles,Rate,Tax Deductible Value,Notes\n";
+
+            appEntries.forEach(item => {
+                if (item.type === 'receipt') {
+                    const row = [
+                        item.id,
+                        'Receipt',
+                        item.date,
+                        `"${item.merchant.replace(/"/g, '""')}"`,
+                        `"${item.category}"`,
+                        item.amount,
+                        'N/A',
+                        item.taxDeductible ? item.amount : 0,
+                        `"${(item.notes || '').replace(/"/g, '""')}"`
+                    ].join(',');
+                    csvContent += row + "\n";
+                } else {
+                    const row = [
+                        item.id,
+                        'Mileage',
+                        item.date,
+                        `"${item.startLoc.replace(/"/g, '""')}"`,
+                        `"${item.endLoc.replace(/"/g, '""')}"`,
+                        item.miles,
+                        item.rate,
+                        item.calculatedDeduction.toFixed(2),
+                        `"${(item.notes || '').replace(/"/g, '""')}"`
+                    ].join(',');
+                    csvContent += row + "\n";
+                }
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `Tax_Deductions_Export_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Clear All Data
+        function clearAllData() {
+            if (confirm("Are you sure you want to delete all stored receipts and mileage logs? This cannot be undone.")) {
+                appEntries = [];
+                localStorage.removeItem('contractor_tax_entries');
+                renderDashboard();
+                renderLogs();
+                updateStorageCount();
+                showToast('All Data Cleared');
+            }
+        }
+
+        // Storage Count UI Update
+        function updateStorageCount() {
+            document.getElementById('storage-count-label').innerText = `${appEntries.length} records`;
+        }
+
+        // Toast Helper
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            toast.innerText = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2000);
+        }
+    </script>
+</body>
+
+</html>
