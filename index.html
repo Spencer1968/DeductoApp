@@ -933,7 +933,7 @@
                 return;
             }
 
-            let csvContent = "data:text/csv;charset=utf-8,ID,Type,Date,Merchant/Start,Category/End,Amount/Miles,Rate,Tax Deductible Value,Notes\n";
+            let csvContent = "ID,Type,Date,Merchant/Start,Category/End,Amount/Miles,Rate,Tax Deductible Value,Notes\n";
 
             appEntries.forEach(item => {
                 if (item.type === 'receipt') {
@@ -941,8 +941,8 @@
                         item.id,
                         'Receipt',
                         item.date,
-                        `"${item.merchant.replace(/"/g, '""')}"`,
-                        `"${item.category}"`,
+                        `"${(item.merchant || '').replace(/"/g, '""')}"`,
+                        `"${(item.category || '').replace(/"/g, '""')}"`,
                         item.amount,
                         'N/A',
                         item.taxDeductible ? item.amount : 0,
@@ -954,24 +954,28 @@
                         item.id,
                         'Mileage',
                         item.date,
-                        `"${item.startLoc.replace(/"/g, '""')}"`,
-                        `"${item.endLoc.replace(/"/g, '""')}"`,
+                        `"${(item.startLoc || '').replace(/"/g, '""')}"`,
+                        `"${(item.endLoc || '').replace(/"/g, '""')}"`,
                         item.miles,
                         item.rate,
-                        item.calculatedDeduction.toFixed(2),
+                        (item.calculatedDeduction || 0).toFixed(2),
                         `"${(item.notes || '').replace(/"/g, '""')}"`
                     ].join(',');
                     csvContent += row + "\n";
                 }
             });
 
-            const encodedUri = encodeURI(csvContent);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.setAttribute('href', encodedUri);
+            link.setAttribute('href', url);
             link.setAttribute('download', `Tax_Deductions_Export_${new Date().toISOString().split('T')[0]}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+
+            // Clean up the object URL
+            URL.revokeObjectURL(url);
         }
 
         // Clear All Data
